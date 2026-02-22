@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import "../App.css";
 import { FaClock, FaTv } from 'react-icons/fa';
 
-const API_URL = "http://www.omdbapi.com/?apikey=b6003d8a";
+const API_URL = "http://www.omdbapi.com/?apikey=eb36c47c";
 
 const WatchNow = ({ isLoggedIn, updateWatched }) => {
   const { id } = useParams();
