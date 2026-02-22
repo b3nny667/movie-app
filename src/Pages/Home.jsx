@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import MovieCard from "../components/MovieCard";
 import "../App.css";
 
-const API_URL = "http://www.omdbapi.com/?apikey=b6003d8a";
+const API_URL = "http://www.omdbapi.com/?apikey=eb36c47c";
 
 const Home = ({ isLoggedIn, favorites, onToggleFavorite, updateAllMovies }) => {
   const [searchParams] = useSearchParams();
