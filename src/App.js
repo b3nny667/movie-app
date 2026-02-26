@@ -7,8 +7,11 @@ import Register from './Pages/Register';
 import Favorites from './components/Favorites';
 import WatchNow from './Pages/WatchNow';
 import Watched from './Pages/Watched';
+import Search from './Pages/Search';
+import { moviesData } from './data/movies'; // Import moviesData directly
 import './App.css';
-import './css/Watched.css';
+import './css/Netflix.css';
+
 function AppWrapper() {
   return (
     <Router>
@@ -20,29 +23,42 @@ function AppWrapper() {
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [favorites, setFavorites] = useState([]);
-  const [allMovies, setAllMovies] = useState([]);
+  const [allMovies, setAllMovies] = useState(moviesData); // Initialize with moviesData
   const [watchedItems, setWatchedItems] = useState([]);
-  const [darkMode, setDarkMode] = useState(() => {
-    const savedTheme = localStorage.getItem('darkMode');
-    return savedTheme ? JSON.parse(savedTheme) : true;
-  });
   const navigate = useNavigate();
 
-  
-  useEffect(() => {
-    document.documentElement.setAttribute(
-      'data-theme',
-      darkMode ? 'dark' : 'light'
-    );
-    localStorage.setItem('darkMode', JSON.stringify(darkMode));
-  }, [darkMode]);
-
-  
+  // Load user data from localStorage
   useEffect(() => {
     const user = localStorage.getItem('user');
     if (user) {
       setIsLoggedIn(true);
     }
+    
+    const savedFavorites = localStorage.getItem('favorites');
+    if (savedFavorites) {
+      setFavorites(JSON.parse(savedFavorites));
+    }
+    
+    const savedWatched = localStorage.getItem('watchedItems');
+    if (savedWatched) {
+      setWatchedItems(JSON.parse(savedWatched));
+    }
+  }, []);
+
+  // Save data to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('favorites', JSON.stringify(favorites));
+    // Log to debug
+    console.log('Favorites saved:', favorites);
+  }, [favorites]);
+
+  useEffect(() => {
+    localStorage.setItem('watchedItems', JSON.stringify(watchedItems));
+  }, [watchedItems]);
+
+  // Always dark mode
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', 'dark');
   }, []);
 
   const handleLogin = (email, redirectPath = '/') => {
@@ -58,11 +74,14 @@ function App() {
   };
 
   const toggleFavorite = (movieId) => {
-    setFavorites(prev => 
-      prev.includes(movieId)
+    console.log('Toggling favorite:', movieId);
+    setFavorites(prev => {
+      const newFavorites = prev.includes(movieId)
         ? prev.filter(id => id !== movieId)
-        : [...prev, movieId]
-    );
+        : [...prev, movieId];
+      console.log('New favorites:', newFavorites);
+      return newFavorites;
+    });
   };
 
   const updateWatched = (movieId, itemData) => {
@@ -75,23 +94,19 @@ function App() {
       };
 
       if (existingIndex >= 0) {
-        return [
-          newItem,
-          ...prev.slice(0, existingIndex),
-          ...prev.slice(existingIndex + 1)
-        ];
+        const updated = [...prev];
+        updated[existingIndex] = newItem;
+        return updated;
       }
       return [newItem, ...prev];
     });
   };
 
   return (
-    <div className="app">
+    <div className="netflix-app">
       <Nav 
         isLoggedIn={isLoggedIn} 
         onLogout={handleLogout}
-        darkMode={darkMode}
-        setDarkMode={setDarkMode}
       />
       
       <Routes>
@@ -103,6 +118,7 @@ function App() {
             updateAllMovies={setAllMovies}
           />
         } />
+        
         <Route path="/home" element={
           <Home 
             isLoggedIn={isLoggedIn}
@@ -111,30 +127,52 @@ function App() {
             updateAllMovies={setAllMovies}
           />
         } />
+        
         <Route path="/sign" element={
           <Sign onLogin={handleLogin} />
         } />
+        
         <Route path="/register" element={
           <Register />
         } />
+        
         <Route path="/favorites" element={
           <Favorites 
             isLoggedIn={isLoggedIn}
             favorites={favorites}
-            movies={allMovies}
+            movies={allMovies} // Pass allMovies which contains moviesData
             onToggleFavorite={toggleFavorite}
           />
         } />
+        
         <Route path="/watched" element={
           <Watched 
             isLoggedIn={isLoggedIn}
             watchedItems={watchedItems}
           />
         } />
+        
         <Route path="/watch/:id" element={
           <WatchNow 
             isLoggedIn={isLoggedIn}
             updateWatched={updateWatched}
+          />
+        } />
+        
+        <Route path="/genre/:genre" element={
+          <Home 
+            isLoggedIn={isLoggedIn}
+            favorites={favorites}
+            onToggleFavorite={toggleFavorite}
+            updateAllMovies={setAllMovies}
+          />
+        } />
+        
+        <Route path="/search" element={
+          <Search 
+            isLoggedIn={isLoggedIn}
+            favorites={favorites}
+            onToggleFavorite={toggleFavorite}
           />
         } />
       </Routes>
