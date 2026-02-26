@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
-import "../App.css";
-import { FaClock, FaTv } from 'react-icons/fa';
-
-const API_URL = "http://www.omdbapi.com/?apikey=eb36c47c";
+// Pages/WatchNow.jsx
+import { useEffect, useState } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { Play, Star, Calendar, Clock, Film, Users, Award, ChevronLeft } from 'lucide-react';
+import { getMovieById } from '../data/movies';
 
 const WatchNow = ({ isLoggedIn, updateWatched }) => {
   const { id } = useParams();
@@ -11,50 +10,27 @@ const WatchNow = ({ isLoggedIn, updateWatched }) => {
   const location = useLocation();
   const [movie, setMovie] = useState(location.state?.movie || null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [progress, setProgress] = useState(0);
-  const [lastUpdate, setLastUpdate] = useState(Date.now());
-
 
   useEffect(() => {
     if (!isLoggedIn) {
       navigate('/sign', { 
-        state: { 
-          from: `/watch/${id}`,
-          message: "Please sign in to watch movies" 
-        } 
+        state: { from: `/watch/${id}` }
       });
       return;
     }
 
-    const fetchMovieDetails = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`${API_URL}&i=${id}&plot=full`);
-        const data = await response.json();
-        
-        if (data.Response === "True") {
-          setMovie({
-            ...data,
-            trailerId: data.imdbID || "dQw4w9WgXcQ"
-          });
-          const savedProgress = localStorage.getItem(`progress_${id}`);
-          setProgress(savedProgress ? parseInt(savedProgress) : 0);
-        } else {
-          setError(data.Error || "Movie not found");
-        }
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
+    if (!movie) {
+      const foundMovie = getMovieById(id);
+      if (foundMovie) {
+        setMovie(foundMovie);
+        const savedProgress = localStorage.getItem(`progress_${id}`);
+        setProgress(savedProgress ? parseInt(savedProgress) : 0);
       }
-    };
-
-    if (!movie) fetchMovieDetails();
-    else setLoading(false);
+    }
+    setLoading(false);
   }, [id, isLoggedIn, navigate, movie]);
 
-  
   useEffect(() => {
     if (!movie || !isLoggedIn) return;
 
@@ -69,19 +45,17 @@ const WatchNow = ({ isLoggedIn, updateWatched }) => {
           
           updateWatched(id, {
             title: movie.Title,
-            poster: movie.Poster !== "N/A" ? movie.Poster : "/placeholder-movie.jpg",
+            poster: movie.Poster,
             year: movie.Year,
             type: movie.Type,
             minutesLeft,
-            progress: newProgress,
-            lastWatched: new Date().toISOString()
+            progress: newProgress
           });
         }
         
         return newProgress;
       });
-      setLastUpdate(Date.now());
-    }, 10000); // Update every 10 seconds
+    }, 10000);
 
     return () => clearInterval(timer);
   }, [movie, isLoggedIn, updateWatched, id]);
@@ -90,67 +64,156 @@ const WatchNow = ({ isLoggedIn, updateWatched }) => {
 
   if (loading) {
     return (
-      <div className="empty" style={{ minHeight: "80vh" }}>
-        <h2>Loading movie data...</h2>
+      <div className="watch-page">
+        <div className="skeleton" style={{ height: '70vh' }} />
       </div>
     );
   }
 
-  if (error || !movie) {
+  if (!movie) {
     return (
-      <div className="empty" style={{ minHeight: "80vh" }}>
-        <h2>{error || "Movie not available"}</h2>
-        <button className="home-button" onClick={() => navigate('/')}>
-          Back to Home
-        </button>
+      <div className="watch-page">
+        <div className="empty-state">
+          <Film size={64} />
+          <h3>Movie not found</h3>
+          <button className="btn btn-primary" onClick={() => navigate('/')}>
+            Back to Home
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="watch-now-page">
-      <div className="watch-now-container">
-        <div className="movie-card-section">
-          <img 
-            src={movie.Poster !== "N/A" ? movie.Poster : "/placeholder-movie.jpg"} 
-            alt={movie.Title} 
-            className="watch-now-poster"
-            onError={(e) => e.target.src = "/placeholder-movie.jpg"}
-          />
-          <div className="movie-meta">
-            <p><strong>Year:</strong> {movie.Year}</p>
-            <p><strong>Type:</strong> {movie.Type}</p>
-            <p><strong>Rating:</strong> {movie.imdbRating || "N/A"}</p>
-            <p><strong>Runtime:</strong> {movie.Runtime || "N/A"}</p>
-            <p><strong>Genre:</strong> {movie.Genre || "N/A"}</p>
-            
-            <div className="progress-container">
-              <div className="progress-bar">
-                <div className="progress-fill" style={{ width: `${progress}%` }} />
-              </div>
-              <p>Watched: {progress}%</p>
+    <div className="watch-page">
+      {/* Hero Section */}
+      <div 
+        className="watch-hero"
+        style={{
+          backgroundImage: `url(${movie.Poster !== "N/A" ? movie.Poster : "/placeholder-movie.jpg"})`
+        }}
+      >
+        <div className="watch-hero-overlay">
+          <div className="watch-hero-content">
+            <button 
+              className="back-btn"
+              onClick={() => navigate(-1)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                marginBottom: '1rem',
+                cursor: 'pointer',
+                fontSize: '1rem'
+              }}
+            >
+              <ChevronLeft size={20} />
+              Back
+            </button>
+            <h1 className="watch-hero-title">{movie.Title}</h1>
+            <div className="watch-hero-meta">
+              <span className="watch-hero-rating">
+                <Star size={18} fill="#ffd700" color="#ffd700" />
+                {movie.imdbRating || 'N/A'}
+              </span>
+              <span className="watch-hero-year">{movie.Year}</span>
+              <span className="watch-hero-runtime">{movie.Runtime || 'N/A'}</span>
+              <span className="watch-hero-type">{movie.Type}</span>
+            </div>
+            <p className="watch-hero-overview">{movie.Plot}</p>
+            <div className="watch-buttons">
+              <button className="watch-btn" style={{ background: 'white', color: 'black' }}>
+                <Play size={20} fill="currentColor" />
+                Play
+              </button>
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="trailer-description-section">
-          <div className="trailer-frame">
+      {/* Trailer Section */}
+      {movie.trailerId && (
+        <div className="watch-trailer-section">
+          <h2 style={{ marginBottom: '1rem', fontSize: '1.5rem' }}>Trailer</h2>
+          <div className="watch-trailer">
             <iframe
-              width="100%"
-              height="100%"
               src={`https://www.youtube.com/embed/${movie.trailerId}`}
               title={`${movie.Title} Trailer`}
-              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
             />
           </div>
-          <div className="movie-description">
-            <h2>{movie.Title}</h2>
-            <p><strong>Plot:</strong> {movie.Plot || "No description available."}</p>
-            {movie.Actors && <p><strong>Cast:</strong> {movie.Actors}</p>}
-            {movie.Director && <p><strong>Director:</strong> {movie.Director}</p>}
-            {movie.Writer && <p><strong>Writer:</strong> {movie.Writer}</p>}
+        </div>
+      )}
+
+      {/* Details Section */}
+      <div className="watch-details" style={{ padding: '0 4% 2rem' }}>
+        {/* Progress Bar */}
+        {progress > 0 && (
+          <div className="progress-container">
+            <h3>Your Progress</h3>
+            <div className="progress-bar">
+              <div className="progress-fill" style={{ width: `${progress}%` }} />
+            </div>
+            <p className="progress-text">{progress}% watched</p>
           </div>
+        )}
+
+        {/* Cast */}
+        {movie.Actors && (
+          <div className="watch-detail-section">
+            <h3 className="watch-detail-title">
+              <Users size={18} style={{ marginRight: '0.5rem' }} />
+              Cast
+            </h3>
+            <div className="watch-cast">
+              {movie.Actors.split(', ').map((actor, index) => (
+                <div key={index} className="cast-item">
+                  {actor}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Details Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+          {movie.Director && (
+            <div className="watch-detail-section">
+              <h3 className="watch-detail-title">
+                <Award size={18} style={{ marginRight: '0.5rem' }} />
+                Director
+              </h3>
+              <p>{movie.Director}</p>
+            </div>
+          )}
+          
+          {movie.Writer && (
+            <div className="watch-detail-section">
+              <h3 className="watch-detail-title">Writer</h3>
+              <p>{movie.Writer}</p>
+            </div>
+          )}
+
+          {movie.Genre && (
+            <div className="watch-detail-section">
+              <h3 className="watch-detail-title">
+                <Film size={18} style={{ marginRight: '0.5rem' }} />
+                Genre
+              </h3>
+              <p>{movie.Genre}</p>
+            </div>
+          )}
+
+          {movie.Country && (
+            <div className="watch-detail-section">
+              <h3 className="watch-detail-title">Country</h3>
+              <p>{movie.Country}</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
